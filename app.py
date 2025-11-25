@@ -16,7 +16,7 @@ def styled_response(title, content, color="#2b6cb0"):
         <pre style='background:#edf2f7; padding:15px; border-radius:8px; overflow-x:auto;
                     white-space:pre-wrap; font-size:14px;'>{content}</pre>
         <p style='font-size:13px; text-align:center; color:#666; margin-top:20px;'>
-            Desenvolvido com 💻 Flask — por Nycole
+            Desenvolvido com 💻 Flask — por Nycole e Dionisio
         </p>
     </div>
     """, mimetype="text/html")

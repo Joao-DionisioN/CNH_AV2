@@ -69,7 +69,7 @@ def adicionar_cnh(dados):
     except sqlite3.IntegrityError:
         raise ValueError("Já existe uma CNH com esse número de registro")
     except Exception as e:
-        raise ValueError(f"Falhou: {str(e)}")
+        raise ValueError(f"Erro ao adicionar CNH: {str(e)}")
 
 
 # ==========================================================
