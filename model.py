@@ -62,3 +62,4 @@ class CNH:
             "NACIONALIDADE": self.nacionalidade,
             "FILIAÇÃO": f"{self.filiacao1}  {self.filiacao2}"
         }
+    
