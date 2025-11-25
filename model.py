@@ -50,16 +50,21 @@ class CNH:
     # ==========================================================
     def to_dict(self):
         return {
-            "NOME E SOBRENOME": self.nome,
-            "1ª HABILITAÇÃO": self.primeira_habilitacao,
-            "DATA, LOCAL E UF DE NASCIMENTO": f"{self.nascimento_data}  {self.nascimento_local}/{self.uf_nascimento}",
-            "DATA EMISSÃO": self.emissao,
-            "VALIDADE": self.validade,
-            "DOC. IDENTIDADE / ÓRG. EMISSOR / UF": f"{self.identidade}  {self.emissor}  {self.uf_emissao}",
-            "CPF": self.cpf,
-            "Nº REGISTRO": self.registro,
-            "CAT. HAB.": self.categoria,
-            "NACIONALIDADE": self.nacionalidade,
-            "FILIAÇÃO": f"{self.filiacao1}  {self.filiacao2}"
+            "nome": self.nome,
+            "primeira_habilitacao": self.primeira_habilitacao,
+            "nascimento_data": self.nascimento_data,
+            "nascimento_local": self.nascimento_local,
+            "uf_nascimento": self.uf_nascimento,
+            "emissao": self.emissao,
+            "validade": self.validade,
+            "identidade": self.identidade,
+            "emissor": self.emissor, 
+            "uf_emissao": self.uf_emissao,
+            "cpf": self.cpf,
+            "registro": self.registro,
+            "categoria": self.categoria,
+            "nacionalidade": self.nacionalidade,
+            "filiacao1": self.filiacao1, 
+            "filiacao2": self.filiacao2
         }
     

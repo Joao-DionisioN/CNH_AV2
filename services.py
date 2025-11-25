@@ -57,6 +57,8 @@ def adicionar_cnh(dados):
 
         campos = ", ".join(cnh_dict.keys())
         valores = ", ".join(["?" for _ in cnh_dict])
+        print('campos:', campos)
+        print('valores:', valores)
         cursor.execute(f"INSERT INTO cnhs ({campos}) VALUES ({valores})", tuple(cnh_dict.values()))
 
         conn.commit()
@@ -67,7 +69,7 @@ def adicionar_cnh(dados):
     except sqlite3.IntegrityError:
         raise ValueError("Já existe uma CNH com esse número de registro")
     except Exception as e:
-        raise ValueError(f"Erro ao adicionar CNH: {str(e)}")
+        raise ValueError(f"Falhou: {str(e)}")
 
 
 # ==========================================================
