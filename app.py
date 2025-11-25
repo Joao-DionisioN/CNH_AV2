@@ -1,13 +1,16 @@
 from flask import Flask, request, jsonify, Response
 import services
 from model import CNH
+import os
+import json
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
 # ==========================================================
 # Função util para respostas HTML estilizadas
 # ==========================================================
-def styled_response(title, content, color="#2b6cb0"):
+def styled_response(title, content, color="#2bb067"):
     return Response(f"""
     <div style='font-family: Segoe UI, sans-serif; color: #222; padding: 30px;
                 background: #f8f9fa; border-radius: 12px; width: 90%; max-width: 850px;
@@ -20,6 +23,48 @@ def styled_response(title, content, color="#2b6cb0"):
         </p>
     </div>
     """, mimetype="text/html")
+
+
+def styled_page(title, html_content, color="#2bb067"):
+    """Retorna uma página estilizada onde o conteúdo pode conter HTML (formulários, imagens etc.)."""
+    return Response(f"""
+    <div style='font-family: Segoe UI, sans-serif; color: #222; padding: 30px;
+                background: #f8f9fa; border-radius: 12px; width: 90%; max-width: 850px;
+                margin: 40px auto; box-shadow: 0 0 15px rgba(0,0,0,0.1);'>
+        <h2 style='color:{color}; text-align:center;'>{title}</h2>
+        <div style='background:#fff; padding:20px; border-radius:8px; font-size:14px; color:#222;'>
+            {html_content}
+        </div>
+        <p style='font-size:13px; text-align:center; color:#666; margin-top:20px;'>
+            Desenvolvido com 💻 Flask — por Nycole e Dionisio
+        </p>
+    </div>
+    """, mimetype="text/html")
+
+
+def smart_response(obj, status=200, title=None):
+    """Retorna JSON para clientes API ou uma página estilizada quando o cliente aceita HTML.
+
+    - Se o cliente aceitar HTML, exibimos o conteúdo (obj) como JSON formatado dentro de
+      `styled_response` para manter o estilo das páginas de ajuda.
+    - Caso contrário, retornamos `jsonify(obj)` com o status.
+    """
+    accept = request.headers.get('Accept', '')
+    wants_html = request.accept_mimetypes.accept_html or 'text/html' in accept
+
+    if wants_html:
+        if isinstance(obj, str):
+            content = obj
+        else:
+            try:
+                content = json.dumps(obj, ensure_ascii=False, indent=2)
+            except Exception:
+                content = str(obj)
+
+        page_title = title or (obj.get('mensagem') if isinstance(obj, dict) and 'mensagem' in obj else 'Resposta')
+        return styled_response(page_title, content), status
+
+    return jsonify(obj), status
 
 # ==========================================================
 # Página inicial
@@ -51,18 +96,18 @@ Use "_" no lugar de espaços em nomes e cidades. Ex: João_Pessoa"""
 @app.route("/cnhs", methods=["POST"])
 def criar_cnh():
     if not request.is_json:
-        return jsonify({"erro": "O corpo da requisição deve estar em formato JSON."}), 400
+        return smart_response({"erro": "O corpo da requisição deve estar em formato JSON."}, status=400)
     try:
         dados = request.get_json(force=True)
         mensagem_retorno = services.adicionar_cnh(dados)
-        return jsonify({
+        return smart_response({
             "mensagem": "CNH adicionada com sucesso!",
             "cnh": mensagem_retorno
-        }), 201
+        }, status=201, title="✅ CNH adicionada")
     except ValueError as e:
-        return jsonify({"erro": str(e)}), 400
+        return smart_response({"erro": str(e)}, status=400)
     except Exception as e:
-        return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
+        return smart_response({"erro": f"Erro interno: {str(e)}"}, status=500)
 
 # ==========================================================
 # Rota: Listar CNHs (JSON)
@@ -71,9 +116,9 @@ def criar_cnh():
 def listar_cnhs():
     try:
         lista = services.listar_cnhs()
-        return jsonify(lista), 200
+        return smart_response(lista, status=200, title="📋 Lista de CNHs")
     except Exception as e:
-        return jsonify({"erro": f"Erro ao listar CNHs: {str(e)}"}), 500
+        return smart_response({"erro": f"Erro ao listar CNHs: {str(e)}"}, status=500)
 
 # ==========================================================
 # Rota: Atualizar CNH (JSON)
@@ -81,18 +126,18 @@ def listar_cnhs():
 @app.route("/cnhs/<int:cnh_registro>", methods=["PUT"])
 def atualizar_cnh(cnh_registro):
     if not request.is_json:
-        return jsonify({"erro": "O corpo da requisição deve estar em formato JSON."}), 400
+        return smart_response({"erro": "O corpo da requisição deve estar em formato JSON."}, status=400)
     try:
         dados = request.get_json(force=True)
         cnh_atualizada = services.atualizar_cnh(cnh_registro, dados)
-        return jsonify({
+        return smart_response({
             "mensagem": "CNH atualizada com sucesso!",
             "cnh": cnh_atualizada
-        }), 200
+        }, status=200, title="🛠️ CNH atualizada")
     except IndexError as e:
-        return jsonify({"erro": str(e)}), 404
+        return smart_response({"erro": str(e)}, status=404)
     except Exception as e:
-        return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
+        return smart_response({"erro": f"Erro interno: {str(e)}"}, status=500)
 
 # ==========================================================
 # Rota: Deletar CNH (JSON)
@@ -101,14 +146,67 @@ def atualizar_cnh(cnh_registro):
 def deletar_cnh(cnh_registro):
     try:
         cnh_removida = services.deletar_cnh(cnh_registro)
-        return jsonify({
+        return smart_response({
             "mensagem": "CNH removida com sucesso!",
             "cnh": cnh_removida
-        }), 200
+        }, status=200, title="🗑️ CNH removida")
     except IndexError as e:
-        return jsonify({"erro": str(e)}), 404
+        return smart_response({"erro": str(e)}, status=404)
     except Exception as e:
-        return jsonify({"erro": f"Erro interno: {str(e)}"}), 500
+        return smart_response({"erro": f"Erro interno: {str(e)}"}, status=500)
+
+# ==========================================================
+# Rota: Upload de arquivo (file)
+# ==========================================================
+# Config do upload
+app.config["UPLOAD_FOLDER"] = services.UPLOAD_FOLDER
+
+
+@app.route("/upload", methods=["GET", "POST"])
+def upload():
+    # Se for GET, retorna um formulário HTML estilizado para envio de arquivo
+    if request.method == "GET":
+        form_html = """
+        <p>Envie um arquivo de imagem (PNG, JPG) ou PDF. O arquivo será enviado para o backend.</p>
+        <form method='POST' action='/upload' enctype='multipart/form-data' style='display:flex; flex-direction:column; gap:12px;'>
+            <input type='file' name='file' accept='.png,.jpg,.jpeg,.pdf' style='padding:8px;'/>
+            <div style='display:flex; gap:8px;'>
+                <button type='submit' style='background:#2b6cb0; color:#fff; border:none; padding:10px 14px; border-radius:8px; cursor:pointer;'>Enviar</button>
+                <button type='reset' style='background:#edf2f7; color:#222; border:none; padding:10px 14px; border-radius:8px; cursor:pointer;'>Limpar</button>
+            </div>
+        </form>
+        <hr/>
+        <p style='font-size:13px; color:#555;'>Observação: Pasta de uploads: <strong>{}</strong></p>
+        """.format(services.UPLOAD_FOLDER)
+
+        return styled_page("📤 Upload de Arquivo", form_html)
+
+    # POST: processa o upload enviado pelo formulário
+    if "file" not in request.files:
+        return smart_response({"erro": "Nenhum arquivo enviado"}, status=400)
+
+    arquivo = request.files["file"]
+
+    if arquivo.filename == "":
+        return smart_response({"erro": "Nenhum arquivo selecionado"}, status=400)
+
+    # Chama o service
+    resultado = services.salvar_arquivo(arquivo)
+
+    # Se o cliente aceitar HTML (navegador), mostramos uma página estilizada de sucesso
+    accept = request.headers.get('Accept', '')
+    if request.accept_mimetypes.accept_html or 'text/html' in accept:
+        html = f"""
+        <p><strong>Arquivo enviado com sucesso!</strong></p>
+        <ul>
+            <li>Nome original: {secure_filename(arquivo.filename)}</li>
+            <li>Salvo em: {resultado.get('path', 'desconhecido')}</li>
+            <li>Tamanho (bytes): {resultado.get('size', 'desconhecido')}</li>
+        </ul>
+        """
+        return styled_page("✅ Upload concluído", html)
+
+    return smart_response(resultado, status=200)
 
 # ==========================================================
 # Rotas de ajuda (HTML estilizado)
@@ -182,6 +280,18 @@ Envie uma requisição DELETE para /cnhs/&ltregistro&gt
 
 ⚠️ Esta ação é irreversível!"""
     )
+
+# ==========================================================
+# Handlers de erro (HTML estilizado)
+# ==========================================================
+@app.errorhandler(404)
+def not_found(error):
+    return styled_response("404 — Não encontrado", "A rota solicitada não existe. Verifique a URL."), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    return styled_response("500 — Erro interno", f"Ocorreu um erro interno: {str(error)}"), 500
 
 # ==========================================================
 # Rodar aplicação

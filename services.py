@@ -1,6 +1,36 @@
 import sqlite3
 from model import CNH
+import os
+from werkzeug.utils import secure_filename
 
+# Caminho da pasta uploads
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
+
+# Cria a pasta caso não exista
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+
+def salvar_arquivo(file):
+    """
+    Lógica de upload isolada.
+    """
+
+    nome_seguro = secure_filename(file.filename)
+    caminho_completo = os.path.join(UPLOAD_FOLDER, nome_seguro)
+
+    file.save(caminho_completo)
+    
+    # Obter tamanho do arquivo em bytes
+    tamanho = os.path.getsize(caminho_completo)
+
+    return {
+        "mensagem": "Upload realizado com sucesso!",
+        "arquivo": nome_seguro,
+        "path": caminho_completo,
+        "size": tamanho
+    }
+# Nome do banco de dados
 DB_NAME = "cnhs.db"
 
 # ================================
